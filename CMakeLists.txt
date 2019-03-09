@@ -168,3 +168,5 @@ if (BUILD_TESTING)
     add_test(NAME mediaQueryTest COMMAND ${TEST_NAME} 5)
     add_test(NAME webColorTest COMMAND ${TEST_NAME} 6)
 endif()
+
+add_subdirectory(containers/qt5)
