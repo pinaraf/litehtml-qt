@@ -22,12 +22,14 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QPainter>
+#include <QMouseEvent>
+#include <QDesktopServices>
 
 
 container_qt5::container_qt5(QWidget *parent)
     : litehtml::document_container(), QWidget(parent)
 {
-
+    setMouseTracking(true);
 }
 
 container_qt5::~container_qt5()
@@ -47,6 +49,27 @@ void container_qt5::paintEvent(QPaintEvent *event)
     qDebug() << __FUNCTION__ << width();
     _doc->render(width());
     _doc->draw(&painter, 0, 0, nullptr);
+}
+
+void container_qt5::mouseMoveEvent(QMouseEvent *event)
+{
+    litehtml::position::vector vec;
+    if (_doc->on_mouse_over(event->x(), event->y(), event->x(), event->y(), vec))
+        repaint();
+}
+
+void container_qt5::mousePressEvent(QMouseEvent *event)
+{
+    litehtml::position::vector vec;
+    if (_doc->on_lbutton_down(event->x(), event->y(), event->x(), event->y(), vec))
+        repaint();
+}
+
+void container_qt5::mouseReleaseEvent(QMouseEvent *event)
+{
+    litehtml::position::vector vec;
+    if (_doc->on_lbutton_up(event->x(), event->y(), event->x(), event->y(), vec))
+        repaint();
 }
 
 void container_qt5::get_language(litehtml::tstring& language, litehtml::tstring& culture) const
@@ -74,12 +97,12 @@ std::shared_ptr< litehtml::element > container_qt5::create_element(const litehtm
 
 void container_qt5::get_client_rect(litehtml::position& client) const
 {
-    qDebug() << "get_client_rect";
+    //qDebug() << "get_client_rect";
     // No scroll yet
     client.move_to(0, 0);
     client.width = width();
     client.height = height();
-    qDebug() << "==> " << client.width << "x" << client.height;
+    //qDebug() << "==> " << client.width << "x" << client.height;
 }
 
 void container_qt5::del_clip()
@@ -102,14 +125,21 @@ void container_qt5::transform_text(litehtml::tstring& text, litehtml::text_trans
     qDebug() << "transform_text";
 }
 
-void container_qt5::set_cursor(const litehtml::tchar_t* cursor)
+void container_qt5::set_cursor(const litehtml::tchar_t* cursor_)
 {
-    qDebug() << __FUNCTION__;
+    QString cursor(cursor_);
+    if (cursor == "auto")
+        setCursor(Qt::IBeamCursor);
+    else if (cursor == "pointer")
+        setCursor(Qt::PointingHandCursor);
+    else
+        qDebug() << __FUNCTION__ << cursor;
 }
 
 void container_qt5::on_anchor_click(const litehtml::tchar_t* url, const litehtml::element::ptr& el)
 {
-    qDebug() << __FUNCTION__;
+    qDebug() << __FUNCTION__ << url;
+    QDesktopServices::openUrl(QUrl(url));
 }
 
 void container_qt5::link(const std::shared_ptr< litehtml::document >& doc, const litehtml::element::ptr& el)
@@ -147,10 +177,58 @@ void container_qt5::load_image(const litehtml::tchar_t* src, const litehtml::tch
     qDebug() << __FUNCTION__;
 }
 
+static QRect getRect(const litehtml::position &position) {
+    return QRect(position.x, position.y, position.width, position.height);
+}
+
+static QColor getColor(const litehtml::web_color &color) {
+    return QColor(color.red, color.green, color.blue, color.alpha);
+}
+
+
 void container_qt5::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker)
 {
     qDebug() << __FUNCTION__;
+    qDebug() << marker.marker_type << marker.pos.x << "x" << marker.pos.y << marker.pos.left() << marker.pos.right();
+    qDebug() << marker.baseurl << QString::fromStdString(marker.image);
+    QPainter *painter = (QPainter *) hdc;
+    QRect position = getRect(marker.pos);
+    QColor color = getColor(marker.color);
+    painter->save();
+    painter->setPen(color);
+    switch (marker.marker_type) {
+        case litehtml::list_style_type_none: break;
+        case litehtml::list_style_type_circle: painter->drawEllipse(position); break;
+        case litehtml::list_style_type_disc: painter->setBrush(color); painter->drawEllipse(position); break;
+        case litehtml::list_style_type_square: painter->fillRect(position, getColor(marker.color)); break;
+        // How to implement numeral markers ??
+        default: break;
+    }
+    painter->restore();
 }
+/*
+		list_style_type_none,
+		list_style_type_circle,
+		list_style_type_disc,
+		list_style_type_square,
+		list_style_type_armenian,
+		list_style_type_cjk_ideographic,
+		list_style_type_decimal,
+		list_style_type_decimal_leading_zero,
+		list_style_type_georgian,
+		list_style_type_hebrew,
+		list_style_type_hiragana,
+		list_style_type_hiragana_iroha,
+		list_style_type_katakana,
+		list_style_type_katakana_iroha,
+		list_style_type_lower_alpha,
+		list_style_type_lower_greek,
+		list_style_type_lower_latin,
+		list_style_type_lower_roman,
+		list_style_type_upper_alpha,
+		list_style_type_upper_latin,
+		list_style_type_upper_roman,
+*/
 
 const litehtml::tchar_t* container_qt5::get_default_font_name() const
 {
@@ -171,15 +249,15 @@ int container_qt5::pt_to_px(int pt)
 
 void container_qt5::draw_text(litehtml::uint_ptr hdc, const litehtml::tchar_t* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos)
 {
-    qDebug() << __FUNCTION__;
+    //qDebug() << __FUNCTION__;
     QPainter *painter = (QPainter *) hdc;
     QFont *font = (QFont *) hFont;
     painter->setFont(*font);
     painter->setBrush(QColor(color.red, color.green, color.blue, color.alpha));
-    QFontMetrics metrics(*font);
+    //QFontMetrics metrics(*font);
     
-    qDebug() << "Paint " << text << " at " << pos.x << "x" << pos.y;
-    painter->drawText(pos.x, pos.y/* + metrics.height()*/, text);
+    //qDebug() << "Paint " << text << " at " << pos.x << "x" << pos.y;
+    painter->drawText(pos.x, pos.y, text);
 }
 
 int container_qt5::text_width(const litehtml::tchar_t* text, litehtml::uint_ptr hFont)
