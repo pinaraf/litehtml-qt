@@ -21,8 +21,11 @@
 #include <QDebug>
 #include <QFont>
 #include <QFontMetrics>
+#include <QPainter>
 
-container_qt5::container_qt5()
+
+container_qt5::container_qt5(QWidget *parent)
+    : litehtml::document_container(), QWidget(parent)
 {
 
 }
@@ -30,6 +33,20 @@ container_qt5::container_qt5()
 container_qt5::~container_qt5()
 {
 
+}
+
+void container_qt5::set_document(std::shared_ptr< litehtml::document > doc)
+{
+    _doc = doc;
+}
+
+void container_qt5::paintEvent(QPaintEvent *event)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+    qDebug() << __FUNCTION__ << width();
+    _doc->render(width());
+    _doc->draw(&painter, 0, 0, nullptr);
 }
 
 void container_qt5::get_language(litehtml::tstring& language, litehtml::tstring& culture) const
@@ -40,6 +57,13 @@ void container_qt5::get_language(litehtml::tstring& language, litehtml::tstring&
 void container_qt5::get_media_features(litehtml::media_features& media) const
 {
     qDebug() << "get_media_features";
+    media.width = width();
+    media.height = height();
+    media.device_width = width();
+    media.device_height = height();
+    media.type = litehtml::media_type_screen;
+    
+    qDebug() << "=> " << media.width << "x" << media.height;
 }
 
 std::shared_ptr< litehtml::element > container_qt5::create_element(const litehtml::tchar_t* tag_name, const litehtml::string_map& attributes, const std::shared_ptr< litehtml::document >& doc)
@@ -51,6 +75,11 @@ std::shared_ptr< litehtml::element > container_qt5::create_element(const litehtm
 void container_qt5::get_client_rect(litehtml::position& client) const
 {
     qDebug() << "get_client_rect";
+    // No scroll yet
+    client.move_to(0, 0);
+    client.width = width();
+    client.height = height();
+    qDebug() << "==> " << client.width << "x" << client.height;
 }
 
 void container_qt5::del_clip()
@@ -100,7 +129,7 @@ void container_qt5::set_caption(const litehtml::tchar_t* caption)
 
 void container_qt5::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root)
 {
-    qDebug() << __FUNCTION__;
+    qDebug() << __FUNCTION__ << " for root = " << root;
 }
 
 void container_qt5::draw_background(litehtml::uint_ptr hdc, const litehtml::background_paint& bg)
@@ -143,6 +172,14 @@ int container_qt5::pt_to_px(int pt)
 void container_qt5::draw_text(litehtml::uint_ptr hdc, const litehtml::tchar_t* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos)
 {
     qDebug() << __FUNCTION__;
+    QPainter *painter = (QPainter *) hdc;
+    QFont *font = (QFont *) hFont;
+    painter->setFont(*font);
+    painter->setBrush(QColor(color.red, color.green, color.blue, color.alpha));
+    QFontMetrics metrics(*font);
+    
+    qDebug() << "Paint " << text << " at " << pos.x << "x" << pos.y;
+    painter->drawText(pos.x, pos.y/* + metrics.height()*/, text);
 }
 
 int container_qt5::text_width(const litehtml::tchar_t* text, litehtml::uint_ptr hFont)
@@ -150,8 +187,12 @@ int container_qt5::text_width(const litehtml::tchar_t* text, litehtml::uint_ptr 
     qDebug() << __FUNCTION__;
     QFont *font = (QFont *) hFont;
     QFontMetrics metrics(*font);
-    qDebug() << " For " << text << metrics.boundingRect(text);
-    return metrics.boundingRect(text).width();
+    QString txt(text);
+    qDebug() << "For" << txt << metrics.boundingRect(txt);
+    if (txt == " ") {
+        return 42;
+    }
+    return metrics.boundingRect(txt).width();
 }
 
 void container_qt5::delete_font(litehtml::uint_ptr hFont)
@@ -167,5 +208,10 @@ litehtml::uint_ptr container_qt5::create_font(const litehtml::tchar_t* faceName,
     //TODO: fm
     qDebug() << __FUNCTION__ << " for " << faceName << size << weight;
     QFont *font = new QFont(faceName, size, weight, italic == litehtml::fontStyleItalic);
+    QFontMetrics metrics(*font);
+    fm->height = metrics.ascent() + metrics.descent() + 2;
+    fm->ascent = metrics.ascent();
+    fm->descent = metrics.descent();
+    fm->x_height = metrics.boundingRect("x").height();
     return font;
 }

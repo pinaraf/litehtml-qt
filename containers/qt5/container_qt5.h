@@ -20,23 +20,32 @@
 #define CONTAINER_QT5_H
 
 #include "../../include/litehtml.h"
+#include <QWidget>
 
 /**
  * @todo write docs
  */
-class container_qt5 : public litehtml::document_container
+class container_qt5 : public litehtml::document_container, public QWidget
 {
+private:
+    std::shared_ptr< litehtml::document > _doc;
+
+protected:
+    virtual void paintEvent(QPaintEvent *event) override;
+
 public:
     /**
      * Default constructor
      */
-    container_qt5();
+    container_qt5(QWidget *parent = nullptr);
 
     /**
      * Destructor
      */
     ~container_qt5();
 
+    void set_document(std::shared_ptr<litehtml::document> doc);
+    
     /**
      * @todo write docs
      *
