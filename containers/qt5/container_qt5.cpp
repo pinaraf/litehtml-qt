@@ -254,10 +254,10 @@ void container_qt5::draw_text(litehtml::uint_ptr hdc, const litehtml::tchar_t* t
     QFont *font = (QFont *) hFont;
     painter->setFont(*font);
     painter->setBrush(QColor(color.red, color.green, color.blue, color.alpha));
-    //QFontMetrics metrics(*font);
+    QFontMetrics metrics(*font);
     
     //qDebug() << "Paint " << text << " at " << pos.x << "x" << pos.y;
-    painter->drawText(pos.x, pos.y, text);
+    painter->drawText(pos.x, pos.bottom() - metrics.descent(), text);
 }
 
 int container_qt5::text_width(const litehtml::tchar_t* text, litehtml::uint_ptr hFont)
@@ -268,7 +268,7 @@ int container_qt5::text_width(const litehtml::tchar_t* text, litehtml::uint_ptr 
     QString txt(text);
     qDebug() << "For" << txt << metrics.boundingRect(txt);
     if (txt == " ") {
-        return 42;
+        return metrics.boundingRect("x").width();
     }
     return metrics.boundingRect(txt).width();
 }
@@ -283,7 +283,6 @@ void container_qt5::delete_font(litehtml::uint_ptr hFont)
 litehtml::uint_ptr container_qt5::create_font(const litehtml::tchar_t* faceName, int size, int weight, litehtml::font_style italic, unsigned int decoration, litehtml::font_metrics* fm)
 {
     //TODO: decoration
-    //TODO: fm
     qDebug() << __FUNCTION__ << " for " << faceName << size << weight;
     QFont *font = new QFont(faceName, size, weight, italic == litehtml::fontStyleItalic);
     QFontMetrics metrics(*font);

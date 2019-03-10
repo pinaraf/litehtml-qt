@@ -18,7 +18,8 @@ int main (int argc, char **argv) {
     container_qt5 c;
     //auto doc = litehtml::document::createFromUTF8("<html><body><ul><li>One</li><li>Zwei</li><li>Trois</li></ul></body></html>", &c, &ctxt);
     //auto doc = litehtml::document::createFromUTF8("<html><body><p>Line1.1 Line1.2<br />Line2</p><ul><li>One</li><li>Zwei</li><li>Trois</li></ul></body></html>", &c, &ctxt);
-    auto doc = litehtml::document::createFromUTF8("<html><body><a href=\"http://linuxfr.org/\">DLFP</a></body></html>", &c, &ctxt);
+    //auto doc = litehtml::document::createFromUTF8("<html><body><a href=\"http://linuxfr.org/\">DLFP</a></body></html>", &c, &ctxt);
+    auto doc = litehtml::document::createFromUTF8("<html><body><table><th><td>H1</td><td>H2</td></th><tr><td>C1.1</td><td>C1.2</td></tr><tr><td>C2.1</td><td>C2.2</td></tr></table></body></html>", &c, &ctxt);
     c.set_document(doc);
 
     c.show();
