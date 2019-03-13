@@ -26,6 +26,20 @@
 #include <QDesktopServices>
 
 
+/**
+ * Simple conversion functions
+ */
+static QRect getRect(const litehtml::position &position) {
+    return QRect(position.x, position.y, position.width, position.height);
+}
+
+static QColor getColor(const litehtml::web_color &color) {
+    return QColor(color.red, color.green, color.blue, color.alpha);
+}
+
+
+// Now for the real stuff
+
 container_qt5::container_qt5(QWidget *parent)
     : litehtml::document_container(), QWidget(parent)
 {
@@ -157,9 +171,61 @@ void container_qt5::set_caption(const litehtml::tchar_t* caption)
     qDebug() << __FUNCTION__;
 }
 
+static void setPenForBorder(QPainter *painter, const litehtml::border &border)
+{
+    QPen pen(painter->pen());
+    pen.setWidth(border.width);
+    pen.setColor(getColor(border.color));
+    /*
+    border_style_none,
+    border_style_hidden,
+    border_style_dotted,
+    border_style_dashed,
+    border_style_solid,
+    border_style_double,
+    border_style_groove,
+    border_style_ridge,
+    border_style_inset,
+    border_style_outset
+    */
+    switch (border.style) {
+        case litehtml::border_style_none:
+        case litehtml::border_style_hidden: pen.setStyle(Qt::NoPen); break;
+        case litehtml::border_style_dotted: pen.setStyle(Qt::DotLine); break;
+        case litehtml::border_style_dashed: pen.setStyle(Qt::DashLine); break;
+        default: pen.setStyle(Qt::SolidLine); break;
+    }
+    painter->setPen(pen);
+}
+
 void container_qt5::draw_borders(litehtml::uint_ptr hdc, const litehtml::borders& borders, const litehtml::position& draw_pos, bool root)
 {
-    qDebug() << __FUNCTION__ << " for root = " << root;
+    //qDebug() << __FUNCTION__ << " for root = " << root;
+    QPainter *painter = (QPainter *) hdc;
+    painter->save();
+    QRect area = getRect(draw_pos);
+    if (root) {
+        painter->setPen(Qt::NoPen);
+        painter->fillRect(area, Qt::white);
+    } else {
+        if (borders.top.style != litehtml::border_style_none) {
+            setPenForBorder(painter, borders.top);
+            painter->drawLine(area.topLeft(), area.topRight());
+        }
+        if (borders.bottom.style != litehtml::border_style_none) {
+            setPenForBorder(painter, borders.bottom);
+            painter->drawLine(area.bottomLeft(), area.bottomRight());
+        }
+        if (borders.left.style != litehtml::border_style_none) {
+            setPenForBorder(painter, borders.left);
+            painter->drawLine(area.topLeft(), area.bottomLeft());
+        }
+        if (borders.right.style != litehtml::border_style_none) {
+            setPenForBorder(painter, borders.right);
+            painter->drawLine(area.topRight(), area.bottomRight());
+        }
+    }
+    painter->restore();
 }
 
 void container_qt5::draw_background(litehtml::uint_ptr hdc, const litehtml::background_paint& bg)
@@ -176,15 +242,6 @@ void container_qt5::load_image(const litehtml::tchar_t* src, const litehtml::tch
 {
     qDebug() << __FUNCTION__;
 }
-
-static QRect getRect(const litehtml::position &position) {
-    return QRect(position.x, position.y, position.width, position.height);
-}
-
-static QColor getColor(const litehtml::web_color &color) {
-    return QColor(color.red, color.green, color.blue, color.alpha);
-}
-
 
 void container_qt5::draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker& marker)
 {
@@ -253,7 +310,8 @@ void container_qt5::draw_text(litehtml::uint_ptr hdc, const litehtml::tchar_t* t
     QPainter *painter = (QPainter *) hdc;
     QFont *font = (QFont *) hFont;
     painter->setFont(*font);
-    painter->setBrush(QColor(color.red, color.green, color.blue, color.alpha));
+    painter->setPen(getColor(color));
+    //painter->setBrush(QColor(color.red, color.green, color.blue, color.alpha));
     QFontMetrics metrics(*font);
     
     //qDebug() << "Paint " << text << " at " << pos.x << "x" << pos.y;
@@ -285,6 +343,9 @@ litehtml::uint_ptr container_qt5::create_font(const litehtml::tchar_t* faceName,
     //TODO: decoration
     qDebug() << __FUNCTION__ << " for " << faceName << size << weight;
     QFont *font = new QFont(faceName, size, weight, italic == litehtml::fontStyleItalic);
+    font->setUnderline(decoration & litehtml::font_decoration_underline);
+    font->setOverline(decoration & litehtml::font_decoration_overline);
+    font->setStrikeOut(decoration & litehtml::font_decoration_linethrough);
     QFontMetrics metrics(*font);
     fm->height = metrics.ascent() + metrics.descent() + 2;
     fm->ascent = metrics.ascent();
