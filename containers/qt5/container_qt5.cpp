@@ -17,7 +17,6 @@
  */
 
 #include "container_qt5.h"
-#include "types.h"
 #include <QDebug>
 #include <QFont>
 #include <QFontMetrics>
@@ -62,7 +61,7 @@ void container_qt5::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing);
     qDebug() << __FUNCTION__ << width();
     _doc->render(width());
-    _doc->draw(&painter, 0, 0, nullptr);
+    _doc->draw((litehtml::uint_ptr) &painter, 0, 0, nullptr);
 }
 
 void container_qt5::mouseMoveEvent(QMouseEvent *event)
@@ -302,6 +301,7 @@ int container_qt5::get_default_font_size() const
 int container_qt5::pt_to_px(int pt)
 {
     qDebug() << __FUNCTION__;
+    return pt;
 }
 
 void container_qt5::draw_text(litehtml::uint_ptr hdc, const litehtml::tchar_t* text, litehtml::uint_ptr hFont, litehtml::web_color color, const litehtml::position& pos)
@@ -351,5 +351,5 @@ litehtml::uint_ptr container_qt5::create_font(const litehtml::tchar_t* faceName,
     fm->ascent = metrics.ascent();
     fm->descent = metrics.descent();
     fm->x_height = metrics.boundingRect("x").height();
-    return font;
+    return (litehtml::uint_ptr) font;
 }
